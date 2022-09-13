@@ -74,6 +74,8 @@ impl EventHandler for Handler {
                         format!("{} seconds", seconds)
                     };
 
+                    tracing::info!("New record: {}", humantime);
+
                     if let Err(e) = msg
                         .channel_id
                         .send_message(&context, |m| {
