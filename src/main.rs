@@ -49,7 +49,7 @@ impl EventHandler for Handler {
                     .expect("Expected SharedData in TypeMap.")
                     .clone()
             };
-            let record = { *record_lock.read().await };
+            let record = { record_lock.read().await };
 
             let duration = if let Some(last_mention) = record.last_mention {
                 now.checked_duration_since(last_mention)
@@ -65,9 +65,9 @@ impl EventHandler for Handler {
                     let days = hours / 24;
 
                     let humantime = if days > 0 {
-                        format!("{} days", days)
+                        format!("{} days and {} hours", days, hours % 24)
                     } else if hours > 0 {
-                        format!("{} hours", hours)
+                        format!("{} hours and {} minutes", hours, minutes % 60)
                     } else if minutes > 0 {
                         format!("{} minutes", minutes)
                     } else {
@@ -76,18 +76,18 @@ impl EventHandler for Handler {
 
                     tracing::info!("New record: {}", humantime);
 
-                    if let Err(e) = msg
-                        .channel_id
-                        .send_message(&context, |m| {
-                            m.content(format!(
-                                "You lasted {} without mentioning Rust, that's a new record!",
-                                humantime
-                            ))
-                        })
-                        .await
-                    {
-                        tracing::error!("An error occurred sending a new record message: {}", e);
-                    }
+                    // if let Err(e) = msg
+                    //     .channel_id
+                    //     .send_message(&context, |m| {
+                    //         m.content(format!(
+                    //             "You lasted {} without mentioning Rust, that's a new record!",
+                    //             humantime
+                    //         ))
+                    //     })
+                    //     .await
+                    // {
+                    //     tracing::error!("An error occurred sending a new record message: {}", e);
+                    // }
                 }
             }
 
@@ -128,6 +128,8 @@ async fn main() {
             duration: None,
         })))
     }
+
+    tracing::info!("Starting a new instance of the client.");
 
     if let Err(reason) = client.start().await {
         tracing::error!(
