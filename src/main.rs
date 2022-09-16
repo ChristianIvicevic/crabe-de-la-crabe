@@ -51,7 +51,7 @@ impl EventHandler for Handler {
                     .expect("Expected SharedData in TypeMap.")
                     .clone()
             };
-            let record = record_lock.read().await;
+            let record = { *record_lock.read().await };
 
             let duration = if let Some(last_mention) = record.last_mention {
                 now.checked_duration_since(last_mention)
