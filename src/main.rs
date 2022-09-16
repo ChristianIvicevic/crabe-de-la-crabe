@@ -99,7 +99,6 @@ impl EventHandler for Handler {
 
                     {
                         let mut writable_record = record_lock.write().await;
-                        writable_record.last_mention = Some(now);
                         writable_record.duration = if duration == None {
                             Some(Duration::from_secs(0))
                         } else {
@@ -107,6 +106,14 @@ impl EventHandler for Handler {
                         };
                     }
                 }
+            }
+
+            {
+                let mut writable_record = record_lock.write().await;
+                writable_record.last_mention = Some(now);
+                if duration == None {
+                    writable_record.duration = Some(Duration::from_secs(0));
+                };
             }
         }
     }
