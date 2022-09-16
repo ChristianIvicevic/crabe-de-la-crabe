@@ -72,30 +72,30 @@ impl EventHandler for Handler {
                     let hours = minutes / 60;
                     let days = hours / 24;
 
-                    let humantime = if days > 0 {
-                        format!("{} days and {} hours", days, hours % 24)
+                    let formatted_time = if days > 0 {
+                        format!("{} day(s) and {} hour(s)", days, hours % 24)
                     } else if hours > 0 {
-                        format!("{} hours and {} minutes", hours, minutes % 60)
+                        format!("{} hour(s) and {} minute(s)", hours, minutes % 60)
                     } else if minutes > 0 {
-                        format!("{} minutes", minutes)
+                        format!("{} minute(s) and {} second(s)", minutes, seconds % 60)
                     } else {
                         format!("{} seconds", seconds)
                     };
 
-                    tracing::info!("New record: {}", humantime);
+                    tracing::info!("New record: {}", formatted_time);
 
-                    // if let Err(e) = msg
-                    //     .channel_id
-                    //     .send_message(&context, |m| {
-                    //         m.content(format!(
-                    //             "You lasted {} without mentioning Rust, that's a new record!",
-                    //             humantime
-                    //         ))
-                    //     })
-                    //     .await
-                    // {
-                    //     tracing::error!("An error occurred sending a new record message: {}", e);
-                    // }
+                    if let Err(e) = msg
+                        .channel_id
+                        .send_message(&context, |m| {
+                            m.content(format!(
+                                "You lasted {} without mentioning Rust, that's a new record!",
+                                formatted_time
+                            ))
+                        })
+                        .await
+                    {
+                        tracing::error!("An error occurred sending a new record message: {}", e);
+                    }
 
                     {
                         let mut writable_record = record_lock.write().await;
