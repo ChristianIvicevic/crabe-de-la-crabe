@@ -42,6 +42,8 @@ impl EventHandler for Handler {
         let now = Instant::now();
 
         if RE.is_match(&msg.content.to_ascii_lowercase()) {
+            tracing::info!("Somebody mentioned Rust.");
+
             let record_lock = {
                 let data_read = context.data.read().await;
                 data_read
@@ -49,13 +51,19 @@ impl EventHandler for Handler {
                     .expect("Expected SharedData in TypeMap.")
                     .clone()
             };
-            let record = { record_lock.read().await };
+            let record = record_lock.read().await;
 
             let duration = if let Some(last_mention) = record.last_mention {
                 now.checked_duration_since(last_mention)
             } else {
                 None
             };
+
+            tracing::info!(
+                "Previous record duration was {:?}, the current duration was {:?}",
+                record.duration,
+                duration
+            );
 
             if let (Some(current), Some(previous)) = (duration, record.duration) {
                 if current.gt(&previous) {
@@ -88,17 +96,17 @@ impl EventHandler for Handler {
                     // {
                     //     tracing::error!("An error occurred sending a new record message: {}", e);
                     // }
-                }
-            }
 
-            {
-                let mut writable_record = record_lock.write().await;
-                writable_record.last_mention = Some(now);
-                writable_record.duration = if duration == None {
-                    Some(Duration::from_secs(0))
-                } else {
-                    duration
-                };
+                    {
+                        let mut writable_record = record_lock.write().await;
+                        writable_record.last_mention = Some(now);
+                        writable_record.duration = if duration == None {
+                            Some(Duration::from_secs(0))
+                        } else {
+                            duration
+                        };
+                    }
+                }
             }
         }
     }
