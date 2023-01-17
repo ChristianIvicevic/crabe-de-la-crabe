@@ -91,7 +91,7 @@ impl EventHandler for Handler {
             let mut last_report = last_report.write().await;
             let previous_report = *last_report;
             match now.checked_duration_since(previous_report) {
-                Some(duration) if duration >= Duration::from_secs(60 * 60 * 24 * 3) => {
+                Some(duration) if duration >= Duration::from_secs(60 * 60 * 24 * 5) => {
                     *last_report = now;
                     true
                 }
@@ -104,18 +104,18 @@ impl EventHandler for Handler {
                 if let Some(channels) = context.cache.guild_channels(guild_id) {
                     if let Some(channel) = channels.iter().find(|c| c.name == "random") {
                         let mut message_builder = MessageBuilder::new();
-                        message_builder.push("👋 Hello everyone!\n\nIt's time for the bi-weekly report on who has mentioned Rust the most on the server. Here are the results:\n\n");
+                        message_builder.push("👋 Hello everyone!\n\nIt's time to check who has mentioned Rust the most on the server. Here are the results:\n\n");
 
                         let data = mention_lock.read().await;
                         let mut mentions = data.iter().collect::<Vec<_>>();
                         mentions.sort_by_key(|(_, count)| count.load(Ordering::SeqCst));
 
-                        mentions.iter().take(5).for_each(|(user_id, count)| {
+                        mentions.iter().rev().take(10).for_each(|(user_id, count)| {
                             let count = count.load(Ordering::SeqCst);
                             message_builder
-                                .push(user_id.mention())
-                                .push(" - ")
                                 .push(count)
+                                .push(" x ")
+                                .push(user_id.mention())
                                 .push("\n");
                         });
 
