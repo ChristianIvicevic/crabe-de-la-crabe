@@ -13,7 +13,7 @@ use regex::Regex;
 use serenity::{
     client::{Context, EventHandler},
     model::{channel::Message, gateway::Ready, prelude::UserId},
-    prelude::{GatewayIntents, Mentionable, TypeMapKey},
+    prelude::{GatewayIntents, TypeMapKey},
     utils::MessageBuilder,
     Client,
 };
@@ -110,14 +110,28 @@ impl EventHandler for Handler {
                         let mut mentions = data.iter().collect::<Vec<_>>();
                         mentions.sort_by_key(|(_, count)| count.load(Ordering::SeqCst));
 
-                        mentions.iter().rev().take(10).for_each(|(user_id, count)| {
-                            let count = count.load(Ordering::SeqCst);
-                            message_builder
-                                .push(count)
-                                .push(" x ")
-                                .push(user_id.mention())
-                                .push("\n");
-                        });
+                        let top_mentions = mentions
+                            .iter()
+                            .rev()
+                            .take(5)
+                            .map(|&(user_id, count)| {
+                                let count = count.load(Ordering::SeqCst);
+                                (user_id, count)
+                            })
+                            .collect::<Vec<_>>();
+
+                        for (user_id, count) in top_mentions {
+                            if let Ok(user) = user_id.to_user(&context).await {
+                                let name =
+                                    user.nick_in(&context, guild_id).await.unwrap_or(user.name);
+                                message_builder.push(format!(
+                                    "**{}**: {} mention{}\n",
+                                    name,
+                                    count,
+                                    if count == 1 { "" } else { "s" }
+                                ));
+                            }
+                        }
 
                         message_builder.push("\nCongratulations to the winners! 🎉");
 
@@ -167,13 +181,31 @@ impl EventHandler for Handler {
                 let days = hours / 24;
 
                 let formatted_time = if days > 0 {
-                    format!("{} day(s) and {} hour(s)", days, hours % 24)
+                    format!(
+                        "{} day{} and {} hour{}",
+                        days,
+                        if days == 1 { "" } else { "s" },
+                        hours % 24,
+                        if hours == 1 { "" } else { "s" },
+                    )
                 } else if hours > 0 {
-                    format!("{} hour(s) and {} minute(s)", hours, minutes % 60)
+                    format!(
+                        "{} hour{} and {} minute{}",
+                        hours,
+                        if hours == 1 { "" } else { "s" },
+                        minutes % 60,
+                        if minutes == 1 { "" } else { "s" }
+                    )
                 } else if minutes > 0 {
-                    format!("{} minute(s) and {} second(s)", minutes, seconds % 60)
+                    format!(
+                        "{} minute{} and {} second{}",
+                        minutes,
+                        if minutes == 1 { "" } else { "s" },
+                        seconds % 60,
+                        if seconds == 1 { "" } else { "s" }
+                    )
                 } else {
-                    format!("{} seconds", seconds)
+                    format!("{} second{}", seconds, if seconds == 1 { "" } else { "s" })
                 };
 
                 tracing::info!("New record: {}", formatted_time);
